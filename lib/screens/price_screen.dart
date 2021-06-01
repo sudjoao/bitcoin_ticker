@@ -1,3 +1,4 @@
+import 'package:bitcoin_ticker/services/coin_api.dart';
 import 'package:bitcoin_ticker/widgets/android_dropdown.dart';
 import 'package:bitcoin_ticker/widgets/ios_picker.dart';
 import 'package:flutter/cupertino.dart';
@@ -12,6 +13,30 @@ class PriceScreen extends StatefulWidget {
 
 class _PriceScreenState extends State<PriceScreen> {
   String actualCoin = "USD";
+  Map<String, String> cryptoCoinsValues = {'BTC': "?", 'ETH': "?", 'LTC': "?"};
+  bool isLoading = false;
+  int precision = 0;
+  @override
+  void initState() {
+    setState(() {
+      isLoading = true;
+    });
+    getValues();
+    super.initState();
+  }
+
+  void getValues() async {
+    var bitcoin = await coinAPI.getBitCoinValue('BTC', actualCoin);
+    var ethereum = await coinAPI.getBitCoinValue('ETH', actualCoin);
+    var litecoin = await coinAPI.getBitCoinValue('LTC', actualCoin);
+    setState(() {
+      cryptoCoinsValues['BTC'] = bitcoin.runtimeType == String ? bitcoin : bitcoin.toStringAsFixed(precision);
+      cryptoCoinsValues['ETH'] = ethereum.runtimeType == String ? ethereum : ethereum.toStringAsFixed(precision);
+      cryptoCoinsValues['LTC'] = litecoin.runtimeType == String ? litecoin : litecoin.toStringAsFixed(precision);
+      isLoading = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -40,14 +65,16 @@ class _PriceScreenState extends State<PriceScreen> {
                         vertical: 15.0,
                         horizontal: 28.0,
                       ),
-                      child: Text(
-                        '$crypto= ? $actualCoin',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 20.0,
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: isLoading
+                          ? Center(child: CircularProgressIndicator())
+                          : Text(
+                              '$crypto = ${cryptoCoinsValues[crypto]} $actualCoin',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 20.0,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                   ),
                 );
@@ -59,21 +86,27 @@ class _PriceScreenState extends State<PriceScreen> {
             alignment: Alignment.center,
             padding: EdgeInsets.only(bottom: 30.0),
             color: Colors.lightBlue,
-            child: !Platform.isAndroid
+            child: Platform.isAndroid
                 ? MyAndroidDropDown(
                     actualValue: actualCoin,
                     onChange: (String value) {
                       setState(() {
+                        isLoading = true;
                         actualCoin = value;
                       });
+                      getValues();
+                      
                     },
                     items: currenciesList,
                   )
                 : MyIosPicker(
                     onSelect: (int value) {
                       setState(() {
+                        isLoading = true;
                         actualCoin = currenciesList[value];
                       });
+                      getValues();
+                      
                     },
                     items: currenciesList,
                   ),
